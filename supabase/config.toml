@@ -1,0 +1,27 @@
+# Supabase Local Development Configuration for QuizPocket
+project_id = "quizpocket"
+
+[api]
+enabled = true
+port = 54321
+schemas = ["public"]
+extra_search_path = ["public"]
+max_rows = 1000
+
+[db]
+port = 54322
+major_version = 15
+
+[db.seed]
+enabled = true
+sql_paths = ["./seed.sql"]
+
+[auth]
+enabled = true
+enable_signup = true
+minimum_password_length = 8
+
+[auth.email]
+enable_signup = true
+double_confirm_changes = false
+enable_confirmations = false

@@ -1,0 +1,6 @@
+{
+  "name": "QuizPocket",
+  "description": "Knowledge in Your Pocket — A secure online examination and assessment platform for teachers and students.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

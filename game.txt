@@ -1,0 +1,25 @@
+# ============================================================================
+# QUIZPOCKET ENVIRONMENT CONFIGURATION TEMPLATE
+# Copy this file to .env for local development. NEVER commit real secrets.
+# ============================================================================
+
+# --- PUBLIC CLIENT CONFIGURATION (Safe for browser ONLY with RLS enabled) ---
+# Supabase Project URL (e.g., https://<project-ref>.supabase.co)
+VITE_SUPABASE_URL=
+
+# Preferred Supabase publishable key (sb_publishable_...)
+VITE_SUPABASE_PUBLISHABLE_KEY=
+
+# Legacy fallback anonymous key (only required if your project uses legacy anon keys)
+VITE_SUPABASE_ANON_KEY=
+
+# --- TRUSTED SERVER-SIDE SECRETS (NEVER prefix with VITE_ or expose to browser) ---
+# Required ONLY on trusted backend / Supabase Edge Functions for privileged admin actions
+SUPABASE_SERVICE_ROLE_KEY=
+
+# Shared high-entropy secret authenticating scheduled expiry sweep calls
+CRON_SECRET=
+
+# Optional application host configuration
+PORT=3000
+APP_URL=

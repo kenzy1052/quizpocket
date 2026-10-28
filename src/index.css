@@ -1,0 +1,88 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  --font-display: "Montserrat", "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-sans: "Inter", "Montserrat", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+
+:root {
+  --qp-accent: #15b8a6;
+  --qp-accent-hover: #109d91;
+  --qp-mint: #c9f7ed;
+  --qp-ink: #202a39;
+  --qp-canvas: #f4f8f7;
+}
+
+@layer base {
+  html {
+    background-color: var(--qp-canvas);
+    color: var(--qp-ink);
+    font-family: var(--font-sans);
+    -webkit-tap-highlight-color: transparent;
+    text-rendering: optimizeLegibility;
+  }
+
+  html.dark {
+    background-color: #161616;
+    color: #fdfdfd;
+    color-scheme: dark;
+  }
+
+  body {
+    margin: 0;
+    min-height: 100dvh;
+    background-color: inherit;
+    color: inherit;
+    overflow-x: hidden;
+  }
+
+  button,
+  [role="button"],
+  select,
+  a {
+    cursor: pointer;
+  }
+
+  button:disabled {
+    cursor: not-allowed;
+  }
+}
+
+html:not(.dark) [class~="bg-[#013F32]"] {
+  background-color: var(--qp-accent);
+}
+
+html:not(.dark) [class~="bg-[#F6F7F5]"] {
+  background-color: var(--qp-canvas);
+}
+
+html:not(.dark) [class~="hover:bg-[#025342]"]:hover {
+  background-color: var(--qp-accent-hover);
+}
+
+html:not(.dark) [class~="text-[#013F32]"] {
+  color: var(--qp-accent);
+}
+
+html:not(.dark) [class~="border-[#013F32]"] {
+  border-color: var(--qp-accent);
+}
+
+html:not(.dark) [class~="focus:border-[#013F32]"]:focus {
+  border-color: var(--qp-accent);
+}
+
+.dashboard-hero {
+  background:
+    radial-gradient(circle at 88% 16%, rgb(255 255 255 / 78%) 0, transparent 23rem),
+    linear-gradient(120deg, #d8fbf2 0%, #f0fcf8 56%, #fff 100%);
+}
+
+html.dark .dashboard-hero {
+  background:
+    radial-gradient(circle at 88% 16%, rgb(21 184 166 / 13%) 0, transparent 23rem),
+    linear-gradient(120deg, #17342f 0%, #1e2525 56%, #1e1f1e 100%);
+}
