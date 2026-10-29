@@ -1,0 +1,831 @@
+# QUIZPOCKET — COMPLETE UI/UX REDESIGN & ADVANCED FUNCTIONALITY UPGRADE
+
+## PROJECT OBJECTIVE
+
+Completely transform QuizPocket into a modern, premium, visually sophisticated, and highly interactive quiz and examination management platform.
+
+This is not a simple UI refresh. I want a comprehensive redesign of the application's visual identity, authentication experience, navigation system, student examination interface, administrator dashboard, and overall user experience.
+
+The finished application should feel like a professionally engineered SaaS platform in 2026, with exceptional visual quality, refined glassmorphism, elegant animations, intelligent layouts, and seamless interactions.
+
+**IMPORTANT:** Work within the existing project. Do not rebuild the backend unnecessarily, remove existing functionality, replace the database, or break existing Supabase integrations. Preserve all existing examination logic, authentication rules, question types, grading mechanisms, permissions, and administrative capabilities.
+
+Use the attached reference images as the primary visual inspiration.
+
+---
+
+## PHASE 1 — COMPLETE VISUAL IDENTITY REDESIGN
+
+### 1.1 Color System
+
+Redesign the entire application's visual identity using the colors found in the attached reference image.
+
+Extract the primary, secondary, accent, and background colors from the reference and develop a consistent design system.
+
+Do not introduce unrelated colors that conflict with the reference.
+
+Create a cohesive color palette with dedicated light and dark variants.
+
+Use semantic design tokens or CSS variables for:
+
+- Primary and secondary colors
+- Accent colors
+- Page backgrounds and surface colors
+- Glass surfaces and borders
+- Text and muted text
+- Hover and active states
+- Success, warning, danger, and information states
+- Shadows, highlights, and gradients
+
+All application components must use this centralized design system.
+
+### 1.2 Premium Glassmorphism
+
+Implement sophisticated glassmorphism throughout the application.
+
+I do not want cheap-looking transparent rectangles with excessive blur.
+
+The glassmorphism should feel intentional, elegant, polished, and professionally designed.
+
+Use:
+
+- Carefully calibrated backdrop blur
+- Subtle translucent surfaces
+- Layered depth and atmospheric backgrounds
+- Fine, semi-transparent borders
+- Soft ambient shadows
+- Gentle highlights and light reflections
+- Tasteful gradients
+- Refined hover and focus interactions
+- Appropriate contrast between foreground and background
+
+Different elements should have different glass treatments depending on their importance.
+
+For example, navigation panels, floating widgets, cards, and modal dialogs should not all have identical transparency or blur.
+
+Use solid or nearly opaque surfaces where readability is critical, especially inside examinations.
+
+**The goal is visual sophistication, not excessive decoration.**
+
+### 1.3 Light and Dark Modes
+
+Implement two fully designed themes:
+
+**Light Mode:** Bright, refined, airy, premium, and visually balanced.
+
+**Dark Mode:** Deep, elegant, immersive, and sophisticated, with beautiful translucent surfaces and controlled highlights.
+
+Both themes must feel intentionally designed rather than simply being inverted versions of each other.
+
+Requirements:
+
+- Smooth theme transitions
+- Persistent theme preference
+- Support for system theme preference
+- No flashing of the wrong theme during initial loading
+- Consistent styling across every route, modal, dropdown, form, and examination screen
+- Accessible contrast in both themes
+
+---
+
+## PHASE 2 — AUTHENTICATION EXPERIENCE REDESIGN
+
+### 2.1 Modern Sign-In and Sign-Up Pages
+
+Completely redesign the sign-in and sign-up interfaces.
+
+These pages should be among the most visually impressive areas of the application.
+
+Create an elegant, welcoming authentication experience featuring:
+
+- Premium glassmorphic authentication panels
+- Beautiful typography and visual hierarchy
+- Tasteful background graphics or abstract illustrations
+- Subtle ambient animations
+- Smooth transitions between sign-in and sign-up
+- Clear input labels and validation
+- Animated focus states
+- Show/hide password functionality
+- Password strength feedback during registration
+- Helpful error messages
+- Loading indicators
+- Responsive layouts
+
+Avoid generic authentication templates.
+
+The experience should be distinctive and consistent with QuizPocket's new visual identity.
+
+### 2.2 Remember Me and Persistent Authentication
+
+Implement a reliable authentication persistence system.
+
+Users should not have to sign in every time they revisit the website if they have an active, valid session.
+
+Include:
+
+- A clearly labeled "Remember me" option where appropriate
+- Persistent sessions using secure authentication mechanisms
+- Automatic restoration of valid sessions
+- Proper session refresh and expiration handling
+- Automatic redirection to the appropriate dashboard after authentication
+- Graceful handling of expired or revoked sessions
+- Secure, reliable logout functionality
+
+Do not store plaintext passwords in localStorage, sessionStorage, or the database.
+
+### 2.3 Browser Password Manager Support
+
+Ensure the authentication forms work correctly with Chrome, Edge, Firefox, Safari, Google Password Manager, and other browser password managers.
+
+Use appropriate HTML autocomplete attributes, such as:
+
+- `username`
+- `current-password`
+- `new-password`
+
+Allow browsers to offer to save and autofill credentials.
+
+Do not attempt to bypass browser security or force password saving.
+
+Support passkeys or other convenient authentication methods only if compatible with the existing authentication architecture.
+
+### 2.4 Authentication Security
+
+Preserve the existing user roles and authentication logic.
+
+Students must never gain administrator permissions through frontend manipulation.
+
+Protect private routes, validate sessions securely, and ensure logout invalidates the appropriate session.
+
+---
+
+## PHASE 3 — COMPLETE ROUTING AND NAVIGATION SYSTEM
+
+Implement a proper route-based architecture across the entire application.
+
+**Every major page, workspace, and navigable section must have its own URL.**
+
+The application should not rely on a single-page state variable that resets navigation whenever the browser refreshes.
+
+### 3.1 Route Structure
+
+Use a routing solution compatible with the existing React application, such as React Router.
+
+Suggested route architecture:
+
+**Public Routes**
+- `/` — Public landing or entry page
+- `/login` — Sign in
+- `/signup` — Registration
+- `/forgot-password` — Password recovery, if supported
+
+**Student Routes**
+- `/student/home` — Personalized student homepage
+- `/student/dashboard` — Student dashboard
+- `/student/quizzes` — Available quizzes
+- `/student/quizzes/:quizId` — Quiz information
+- `/student/exams/:attemptId` — Active examination
+- `/student/results` — Examination results
+- `/student/results/:attemptId` — Individual result details
+- `/student/profile` — Student profile
+- `/student/settings` — Student settings
+
+**Administrator Routes**
+- `/admin/home` — Administrator homepage
+- `/admin/dashboard` — Analytics dashboard
+- `/admin/students` — Student management
+- `/admin/students/:studentId` — Student details
+- `/admin/quizzes` — Quiz management
+- `/admin/quizzes/:quizId` — Quiz details
+- `/admin/quizzes/:quizId/questions` — Question management
+- `/admin/monitoring` — Live examination monitoring
+- `/admin/monitoring/:attemptId` — Individual student monitoring
+- `/admin/results` — Results management
+- `/admin/analytics` — Advanced analytics
+- `/admin/settings` — Administrator settings
+
+Adapt these routes to the existing application's actual features and terminology.
+
+Do not create fake pages or duplicate existing functionality.
+
+### 3.2 Refresh-Safe Navigation
+
+This is a critical requirement.
+
+When a user refreshes any page, they must remain on the same route, provided they are authenticated and authorized.
+
+For example:
+
+If an administrator is viewing:
+
+`/admin/students/123`
+
+Refreshing the browser must not redirect them to the administrator homepage.
+
+Likewise, refreshing an active examination must restore the same examination attempt, question position, saved answers, and remaining time from authoritative application state.
+
+### 3.3 Preserve Page State
+
+Use URL parameters, query parameters, and appropriate state persistence mechanisms for:
+
+- Selected dashboard tabs
+- Search and filter settings
+- Pagination
+- Student records
+- Quiz details
+- Active examination attempts
+- Question navigation
+- Results and reports
+
+Avoid resetting important information unnecessarily.
+
+Support browser back and forward navigation.
+
+Configure Netlify correctly so that direct visits and refreshes on nested routes load the application rather than returning a 404.
+
+### 3.4 Navigation Design
+
+Build a polished navigation system featuring:
+
+- Beautiful sidebar navigation
+- Active route indicators
+- Collapsible sidebar sections
+- Elegant icons
+- Smooth transitions
+- Breadcrumbs where appropriate
+- Mobile navigation drawer
+- Clear page titles
+- Consistent navigation hierarchy
+
+The application should feel organized and effortless to navigate.
+
+---
+
+## PHASE 4 — DEDICATED STUDENT AND ADMINISTRATOR HOMEPAGES
+
+### 4.1 Student Homepage
+
+Create a beautiful, dedicated student homepage that feels welcoming, personalized, and engaging.
+
+Welcome the student by their actual name.
+
+Example:
+
+"Good morning, Kennedy. Ready to challenge yourself today?"
+
+Use the appropriate greeting based on the user's local time.
+
+Design an impressive hero section featuring beautiful graphics, subtle animations, and useful information.
+
+The homepage should contain a carefully curated overview of the student's experience, including:
+
+- Personalized welcome section
+- Available quizzes
+- Upcoming examinations
+- Quizzes currently in progress
+- Recently completed quizzes
+- Quick access to continue an examination
+- Relevant announcements
+- Helpful progress indicators
+- Clear calls to action
+
+Available quizzes should be presented using attractive, organized cards showing relevant information such as subject, duration, question count, availability, and status.
+
+Only show information supported by the actual backend.
+
+### 4.2 Administrator Homepage
+
+Create a completely separate homepage for administrators.
+
+It must not simply be the student homepage with different buttons.
+
+The administrator homepage should feel like a professional examination control center.
+
+Include:
+
+- Personalized administrator greeting
+- Attractive hero section
+- Important examination announcements
+- Quick access to commonly used administrative functions
+- Upcoming or currently running examinations
+- Important alerts requiring attention
+- A concise operational overview
+- Easy navigation to student management, quizzes, monitoring, and reports
+
+### 4.3 Keep Home and Dashboard Separate
+
+**This requirement is extremely important.**
+
+The homepage and dashboard must be two separate pages with different purposes.
+
+The homepage should be welcoming, visually engaging, and navigation-oriented.
+
+The dashboard should be data-focused, analytical, and operational.
+
+Do not overcrowd the homepage with dashboard utilities, large tables, detailed analytics, or complex management controls.
+
+### 4.4 Dashboard Redesign
+
+Use the attached dashboard reference image as the primary layout inspiration.
+
+Study its structure, spacing, card arrangement, typography, visual hierarchy, and overall composition.
+
+Create a dashboard with:
+
+- Premium glassmorphic analytics cards
+- Beautiful charts and data visualizations
+- Clear statistics
+- Elegant filtering controls
+- Well-organized tables
+- Appropriate loading and empty states
+- Smooth chart transitions
+- Excellent readability
+- Responsive layouts
+
+The dashboard should feel spacious and carefully composed.
+
+Avoid cramped interfaces and excessive information density.
+
+---
+
+## PHASE 5 — COMPLETE EXAMINATION INTERFACE REDESIGN
+
+The examination experience is one of the most important parts of QuizPocket.
+
+Redesign it to be visually excellent, distraction-free, intuitive, and reliable.
+
+### 5.1 Examination Layout
+
+Create a beautiful examination interface with clearly separated areas for:
+
+- Examination information
+- Question content
+- Answer options
+- Timer
+- Question navigation
+- Progress indicators
+- Submission controls
+
+Use sufficient whitespace and consistent spacing.
+
+Do not overcrowd the screen.
+
+### 5.2 Question and Answer Separation
+
+The question area must be visually distinct from the answer area.
+
+Use different surface treatments or background colors.
+
+For example:
+
+- Question: a prominent, softly tinted or elevated container
+- Answer options: individual interactive cards on a contrasting surface
+
+Provide meaningful spacing between the question and its possible answers.
+
+Answer options should have beautiful hover, focus, selected, and disabled states.
+
+Selection feedback should be immediate and obvious.
+
+Support all existing question types without breaking their functionality.
+
+### 5.3 Floating Examination Timer
+
+Create a beautiful, animated examination timer that remains visible while the student is taking an examination.
+
+It must not disappear when the student scrolls.
+
+Use a sticky or floating positioning strategy that works on desktop and mobile without covering question content or navigation.
+
+Timer behavior:
+
+- Green when sufficient time remains
+- Amber or orange when time is becoming limited
+- Red when time is critically low
+
+Use sensible thresholds based on the examination duration, with configurable rules where appropriate.
+
+Add tasteful animations such as:
+
+- Smooth countdown transitions
+- Animated progress ring
+- Subtle color transitions
+- Gentle pulse during the final critical period
+
+Avoid aggressive flashing or distracting effects.
+
+Respect reduced-motion preferences.
+
+**The timer must use authoritative examination timing from the backend.**
+
+Do not reset the timer on refresh.
+
+Do not allow browser clock manipulation to extend examination time.
+
+When time expires, use the existing automatic submission and grading rules.
+
+### 5.4 Question Navigation Panel
+
+Redesign the question-number navigation system into a beautiful, interactive question palette.
+
+Students should be able to navigate directly to questions where examination rules permit.
+
+Each question number should clearly indicate its status.
+
+Possible states:
+
+- Current question
+- Answered
+- Unanswered
+- Marked for review
+- Not yet visited
+
+Use accessible colors, borders, and indicators rather than relying on color alone.
+
+On desktop, the question palette may appear as a well-organized sidebar.
+
+On mobile, it should become a compact, expandable drawer or panel.
+
+The navigation panel must not obstruct the question content.
+
+### 5.5 Answer Persistence
+
+When students select an answer:
+
+1. Update the interface immediately.
+2. Save the answer through the existing backend.
+3. Display an appropriate saving or saved indicator.
+4. Handle failed saves safely.
+5. Preserve the answer after refresh or reconnection.
+
+Students should not lose saved answers when navigating between questions.
+
+Do not falsely indicate that an answer has been saved before the backend confirms it.
+
+### 5.6 Examination Completion
+
+Create a polished submission experience.
+
+Include a confirmation dialog where appropriate, with a summary of answered and unanswered questions.
+
+Respect existing examination rules governing submission, retakes, marking, and result release.
+
+After submission, display a clear confirmation state and navigate to the appropriate result or completion page.
+
+---
+
+## PHASE 6 — REAL-TIME ADMINISTRATOR EXAMINATION MONITORING
+
+Build a powerful real-time monitoring experience for administrators.
+
+The administrator should be able to observe examination progress as students work, without needing to refresh the page.
+
+This should feel like a professional live examination control center.
+
+### 6.1 Live Monitoring Dashboard
+
+Create a dedicated route:
+
+`/admin/monitoring`
+
+Display all relevant active examination attempts in a beautifully designed monitoring interface.
+
+For each student, show authorized information such as:
+
+- Student name
+- Examination title
+- Attempt status
+- Examination start time
+- Remaining time
+- Current question position
+- Number of answered questions
+- Number of unanswered questions
+- Overall completion percentage
+- Last recorded activity
+- Submission status
+
+Update these indicators automatically as new information arrives.
+
+### 6.2 Instant Answer Progress Updates
+
+When a student answers a question, the administrator's monitoring screen should update automatically.
+
+For example:
+
+A student answers Question 7.
+
+The system should immediately update the administrator's interface to show that Question 7 has been answered.
+
+The total answered count and completion progress should also update.
+
+Distinguish between:
+
+- The question the student is currently viewing
+- Questions with saved answers
+- Questions marked for review
+- Questions that have not been answered
+
+Do not infer that the student has answered a question merely because they navigated to it.
+
+### 6.3 Individual Student Monitoring
+
+Allow administrators to open a dedicated monitoring page for an individual examination attempt.
+
+Show:
+
+- Student identification
+- Examination details
+- Remaining time
+- Current question
+- Question-by-question completion status
+- Progress visualization
+- Submission status
+- Last synchronized activity
+
+Use a visually attractive question grid to show which questions have saved answers.
+
+Do not expose the actual answer content, correct answers, or grading information during an active examination unless explicitly authorized by existing examination policies.
+
+### 6.4 Real-Time Architecture
+
+Use Supabase Realtime or another appropriate solution compatible with the existing backend.
+
+Requirements:
+
+- Updates should propagate promptly after confirmed backend changes.
+- Monitoring should recover after temporary disconnections.
+- Reconnect automatically when appropriate.
+- Prevent duplicate or out-of-order events from corrupting the interface.
+- Provide a clear connection status.
+- Avoid excessive database queries.
+- Use appropriate subscriptions and cleanup.
+- Apply strict administrator authorization.
+- Use server-authoritative examination timestamps.
+
+If the current backend does not record the student's current question position, add the smallest secure mechanism necessary to support that feature.
+
+Do not confuse the current question with the last answered question.
+
+If presence tracking is implemented, distinguish actual recorded activity from assumptions about whether a student is online.
+
+### 6.5 Monitoring Interface Design
+
+Use premium glassmorphic cards, animated progress bars, clean tables, meaningful status indicators, and subtle live-update animations.
+
+Administrators should be able to filter monitoring data by examination, student, and attempt status.
+
+The interface must remain usable even when monitoring many students simultaneously.
+
+---
+
+## PHASE 7 — ANIMATIONS AND MICROINTERACTIONS
+
+Introduce beautiful, meaningful animations throughout the application.
+
+I want the entire experience to feel fluid, responsive, and carefully engineered.
+
+Use animation libraries such as Motion for React where appropriate.
+
+Implement:
+
+- Smooth page transitions
+- Elegant card entrance animations
+- Refined hover interactions
+- Animated buttons and interactive controls
+- Sidebar expansion and collapse animations
+- Smooth modal transitions
+- Dropdown animations
+- Loading skeletons
+- Animated progress indicators
+- Dashboard chart transitions
+- Subtle background movement
+- Animated notifications
+- Smooth theme transitions
+- Tasteful authentication transitions
+
+Animations should enhance usability rather than slow the application down.
+
+Avoid excessive bouncing, aggressive scaling, unnecessary delays, and constant motion.
+
+Use consistent timing and easing across the application.
+
+Respect `prefers-reduced-motion`.
+
+---
+
+## PHASE 8 — RESPONSIVENESS AND SPACING
+
+Review every page and eliminate cramped layouts.
+
+The application should feel spacious, polished, and balanced.
+
+Establish consistent spacing, typography, and component sizing.
+
+Pay particular attention to:
+
+- Dashboard cards
+- Data tables
+- Forms
+- Modal dialogs
+- Examination questions
+- Answer options
+- Navigation panels
+- Student management interfaces
+- Mobile examination screens
+
+Use responsive layouts that adapt gracefully to desktop, laptop, tablet, and mobile screens.
+
+On smaller screens:
+
+- Prevent horizontal overflow.
+- Use appropriate navigation drawers.
+- Keep examination controls accessible.
+- Maintain readable question text.
+- Ensure answer options have comfortable touch targets.
+- Avoid oversized glass effects that reduce readability.
+- Make data tables scrollable or adapt them to compact layouts.
+
+Do not merely shrink desktop layouts to fit mobile screens.
+
+Design each responsive state intentionally.
+
+---
+
+## PHASE 9 — ADDITIONAL QUALITY-OF-LIFE IMPROVEMENTS
+
+Implement the following improvements wherever relevant.
+
+### 9.1 Global Notifications
+
+Create a consistent notification system for:
+
+- Successful actions
+- Validation errors
+- Failed saves
+- Connection interruptions
+- Examination warnings
+- Submission confirmations
+
+Notifications should be informative, visually refined, and nonintrusive.
+
+### 9.2 Loading and Empty States
+
+Every data-driven page should have appropriate loading, empty, error, and retry states.
+
+Use polished skeleton loaders rather than abrupt layout changes.
+
+### 9.3 Search and Filtering
+
+Improve search, sorting, filtering, and pagination in student and administrator management areas.
+
+Preserve appropriate filters when navigating or refreshing.
+
+### 9.4 Accessibility
+
+Ensure keyboard navigation, visible focus states, semantic markup, readable contrast, screen-reader support, and accessible form validation.
+
+Meet WCAG 2.2 AA wherever practical.
+
+### 9.5 Performance
+
+Optimize the application for fast loading and smooth interaction.
+
+Use route-level code splitting, efficient rendering, appropriate caching, and optimized assets.
+
+Avoid excessive blur, heavy animation, or unnecessary real-time subscriptions that reduce performance.
+
+---
+
+## PHASE 10 — BACKEND, DATA INTEGRITY, AND SECURITY
+
+This is a production examination application. Reliability is as important as visual quality.
+
+Preserve and verify:
+
+- Existing Supabase authentication
+- Existing student and administrator roles
+- Row-level security policies
+- Existing examination availability rules
+- Examination timing and expiration
+- Answer saving
+- Automatic submission
+- Grading and result calculation
+- Result-release restrictions
+- Retake and cooldown rules
+- Student management
+- Administrative reporting
+- Existing database migrations and data
+
+Do not create a parallel authentication system or replace working backend logic unnecessarily.
+
+Any new database tables, fields, or policies must be introduced through reviewed migrations.
+
+Never expose Supabase service-role keys or other server secrets in frontend code.
+
+Store secrets only in appropriate secure environment configuration.
+
+Real-time monitoring must be read-only for administrators unless an existing authorized management action explicitly permits changes.
+
+---
+
+## PHASE 11 — NETLIFY DEPLOYMENT AND PRODUCTION RELIABILITY
+
+The application is deployed through Netlify and connected to GitHub.
+
+Ensure the production deployment behaves consistently with the local development environment.
+
+Verify:
+
+- Correct build command
+- Correct publish directory
+- Correct base directory
+- Correct environment variables
+- Correct Netlify Functions configuration
+- Correct SPA routing fallback
+- Correct handling of direct navigation and browser refresh
+- Correct frontend and backend API paths
+- Correct asset loading
+- Correct production authentication behavior
+
+Do not overwrite API or function routes with an overly broad SPA redirect.
+
+Ensure the application works when deployed from GitHub, not only when deployed manually through Netlify CLI.
+
+The final Git-connected production build must display the same intended UI and functionality as the local application.
+
+---
+
+## PHASE 12 — TESTING AND ACCEPTANCE CRITERIA
+
+Before considering the project complete, verify the following:
+
+1. The entire application uses the new reference-inspired visual identity.
+2. Light and dark modes work consistently across every page.
+3. Glassmorphism is polished, readable, and responsive.
+4. Authentication forms support browser password managers.
+5. Valid sessions persist across reloads and return visits.
+6. Logout works correctly.
+7. Every major application page has a dedicated route.
+8. Refreshing a protected route preserves the current page when the session remains valid.
+9. Students and administrators have different dedicated homepages.
+10. Homepages and dashboards are separate.
+11. The administrator dashboard follows the attached visual reference.
+12. Examination timers remain visible and accurate.
+13. Examination timers do not reset on refresh.
+14. Questions and answer options have distinct visual treatments.
+15. Question navigation is intuitive on desktop and mobile.
+16. Saved answers survive refresh and reconnection.
+17. Administrators receive real-time examination progress updates.
+18. Individual student monitoring works securely.
+19. Existing examination rules and grading behavior remain intact.
+20. Animations are smooth and do not compromise usability.
+21. No major page is cramped, broken, or overflowing.
+22. Production builds and Netlify routing work correctly.
+23. Existing automated tests pass, with additional tests for the new functionality.
+
+---
+
+## IMPLEMENTATION INSTRUCTIONS
+
+Before making changes, inspect the existing project structure, components, routing approach, authentication flow, Supabase integration, examination engine, Netlify configuration, and available tests.
+
+Develop a clear implementation plan and execute it in logical stages.
+
+Prioritize the foundational design system, authentication, and routing before rebuilding complex dashboard and examination interfaces.
+
+Reuse and refactor existing components where appropriate.
+
+Avoid introducing unnecessary dependencies or replacing working architecture without justification.
+
+Maintain clean, modular, maintainable TypeScript and React code.
+
+Do not use fake data to simulate completed functionality in production.
+
+For every major feature, implement the actual working behavior rather than only its visual representation.
+
+Where a feature requires database or backend changes, implement and document those changes properly.
+
+After implementation, provide a concise summary of:
+
+- Features implemented
+- Existing functionality preserved
+- Database migrations required
+- Environment variables required
+- Tests performed
+- Any remaining limitations
+
+## FINAL DESIGN DIRECTION
+
+QuizPocket should no longer feel like a basic quiz website.
+
+It should feel like a premium, intelligent, beautifully engineered digital examination platform.
+
+Think refined SaaS design, exceptional typography, immersive but restrained glassmorphism, fluid navigation, elegant visualizations, intelligent interaction design, and reliable real-time examination functionality.
+
+**Be creative. Be ambitious. Pay attention to every detail.**
+
+Do not settle for generic cards, ordinary dashboards, basic login forms, or superficial glass effects.
+
+The final result must be visually outstanding, functionally complete, secure, responsive, and ready for real-world use.
+
+**Most importantly: preserve everything that already works while significantly elevating the entire application.**

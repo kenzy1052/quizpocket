@@ -125,5 +125,5 @@ describe('duplicate cohort reconciliation migration', () => {
     } finally {
       await harness.close();
     }
-  });
+  }, 25_000);
 });

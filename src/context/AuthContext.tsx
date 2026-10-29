@@ -3,6 +3,7 @@ import { apiRequest, setApiAccessToken, setOnUnauthorizedHandler } from '../lib/
 import { Profile } from '../types/frontend.ts';
 
 const SESSION_STORAGE_KEY = 'quizpocket.session.v1';
+const REMEMBER_ME_KEY = 'quizpocket.remember_me';
 
 interface StoredSession {
   access_token: string;
@@ -22,7 +23,7 @@ interface AuthContextValue {
   sessionNotice: string | null;
   clearSessionNotice: () => void;
   signUp: (username: string, password: string) => Promise<void>;
-  signIn: (username: string, password: string) => Promise<void>;
+  signIn: (username: string, password: string, rememberMe?: boolean) => Promise<void>;
   signOut: (reasonMessage?: string) => void;
   updateFullName: (fullName: string) => Promise<Profile>;
   refreshProfile: () => Promise<void>;
@@ -45,33 +46,84 @@ function clearAttemptDraftStorage(): void {
   }
 }
 
+function saveStoredSession(data: StoredSession, rememberMe: boolean): void {
+  const json = JSON.stringify(data);
+  try {
+    sessionStorage.setItem(SESSION_STORAGE_KEY, json);
+  } catch {
+    // Ignore
+  }
+
+  if (rememberMe) {
+    try {
+      localStorage.setItem(SESSION_STORAGE_KEY, json);
+      localStorage.setItem(REMEMBER_ME_KEY, 'true');
+    } catch {
+      // Ignore
+    }
+  } else {
+    try {
+      localStorage.removeItem(SESSION_STORAGE_KEY);
+      localStorage.removeItem(REMEMBER_ME_KEY);
+    } catch {
+      // Ignore
+    }
+  }
+}
+
+function removeStoredSession(): void {
+  try {
+    sessionStorage.removeItem(SESSION_STORAGE_KEY);
+  } catch {
+    // Ignore
+  }
+  try {
+    localStorage.removeItem(SESSION_STORAGE_KEY);
+    localStorage.removeItem(REMEMBER_ME_KEY);
+  } catch {
+    // Ignore
+  }
+}
+
+function readStoredSession(): { session: StoredSession | null; isPersistent: boolean } {
+  try {
+    const local = localStorage.getItem(SESSION_STORAGE_KEY);
+    if (local) {
+      const parsed = JSON.parse(local) as StoredSession;
+      if (parsed?.access_token) return { session: parsed, isPersistent: true };
+    }
+  } catch {
+    // Ignore
+  }
+
+  try {
+    const session = sessionStorage.getItem(SESSION_STORAGE_KEY);
+    if (session) {
+      const parsed = JSON.parse(session) as StoredSession;
+      if (parsed?.access_token) return { session: parsed, isPersistent: false };
+    }
+  } catch {
+    // Ignore
+  }
+
+  return { session: null, isPersistent: false };
+}
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [isInitializing, setIsInitializing] = useState<boolean>(true);
   const [sessionNotice, setSessionNotice] = useState<string | null>(null);
 
-  const persistAuthenticatedSession = useCallback((data: SignInResponse) => {
+  const persistAuthenticatedSession = useCallback((data: SignInResponse, rememberMe: boolean = true) => {
     setApiAccessToken(data.access_token);
     setProfile(data.profile);
-
-    try {
-      sessionStorage.setItem(
-        SESSION_STORAGE_KEY,
-        JSON.stringify({ access_token: data.access_token, profile: data.profile })
-      );
-    } catch {
-      // Ignore storage quota issues
-    }
+    saveStoredSession({ access_token: data.access_token, profile: data.profile }, rememberMe);
   }, []);
 
   const signOut = useCallback((reasonMessage?: string) => {
     setApiAccessToken(null);
     setProfile(null);
-    try {
-      sessionStorage.removeItem(SESSION_STORAGE_KEY);
-    } catch {
-      // Ignore storage error
-    }
+    removeStoredSession();
     clearAttemptDraftStorage();
     if (reasonMessage) {
       setSessionNotice(reasonMessage);
@@ -90,34 +142,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     async function restoreSession() {
       try {
-        const raw = sessionStorage.getItem(SESSION_STORAGE_KEY);
-        if (!raw) {
-          if (active) setIsInitializing(false);
-          return;
-        }
-        const parsed = JSON.parse(raw) as StoredSession;
-        if (!parsed?.access_token) {
-          sessionStorage.removeItem(SESSION_STORAGE_KEY);
+        const { session: stored, isPersistent } = readStoredSession();
+        if (!stored || !stored.access_token) {
           if (active) setIsInitializing(false);
           return;
         }
 
-        setApiAccessToken(parsed.access_token);
+        setApiAccessToken(stored.access_token);
         const verifiedProfile = await apiRequest<Profile>('/me', { skipAuthRedirect: true });
         if (active) {
           setProfile(verifiedProfile);
-          sessionStorage.setItem(
-            SESSION_STORAGE_KEY,
-            JSON.stringify({ access_token: parsed.access_token, profile: verifiedProfile })
+          saveStoredSession(
+            { access_token: stored.access_token, profile: verifiedProfile },
+            isPersistent
           );
         }
       } catch {
         setApiAccessToken(null);
-        try {
-          sessionStorage.removeItem(SESSION_STORAGE_KEY);
-        } catch {
-          // Ignore
-        }
+        removeStoredSession();
         if (active) setProfile(null);
       } finally {
         if (active) setIsInitializing(false);
@@ -138,20 +180,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         body: { username, password },
         skipAuthRedirect: true,
       });
-      persistAuthenticatedSession(data);
+      persistAuthenticatedSession(data, true);
     },
     [persistAuthenticatedSession]
   );
 
   const signIn = useCallback(
-    async (username: string, password: string) => {
+    async (username: string, password: string, rememberMe = true) => {
       setSessionNotice(null);
       const data = await apiRequest<SignInResponse>('/auth/login', {
         method: 'POST',
         body: { username, password },
         skipAuthRedirect: true,
       });
-      persistAuthenticatedSession(data);
+      persistAuthenticatedSession(data, rememberMe);
     },
     [persistAuthenticatedSession]
   );
@@ -167,17 +209,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       body: { full_name: fullName },
     });
     setProfile(updated);
-    try {
-      const raw = sessionStorage.getItem(SESSION_STORAGE_KEY);
-      if (raw) {
-        const parsed = JSON.parse(raw) as StoredSession;
-        sessionStorage.setItem(
-          SESSION_STORAGE_KEY,
-          JSON.stringify({ ...parsed, profile: updated })
-        );
-      }
-    } catch {
-      // Ignore
+    const { session, isPersistent } = readStoredSession();
+    if (session) {
+      saveStoredSession({ ...session, profile: updated }, isPersistent);
     }
     return updated;
   }, []);

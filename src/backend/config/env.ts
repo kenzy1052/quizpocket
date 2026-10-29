@@ -39,8 +39,9 @@ export function loadBackendEnv(env: NodeJS.ProcessEnv = process.env): BackendEnv
     }
   }
 
-  const parsedPort = Number(env.PORT || 3000);
-  const port = Number.isFinite(parsedPort) && parsedPort > 0 ? parsedPort : 3000;
+  // AI Studio environment mandates port 3000. Port 8080 is reserved by container runtime.
+  const parsedPort = Number(env.APP_PORT || env.QUIZPOCKET_PORT || 3000);
+  const port = parsedPort === 8080 ? 3000 : (Number.isFinite(parsedPort) && parsedPort > 0 ? parsedPort : 3000);
 
   return {
     port,

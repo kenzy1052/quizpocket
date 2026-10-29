@@ -1111,9 +1111,47 @@ export class SupabaseBackendGateway implements BackendGateway {
     return data;
   }
 
+  async studentRecordQuestionPosition(
+    actor: AuthenticatedActor,
+    attemptId: string,
+    questionIndex: number
+  ): Promise<unknown> {
+    const client = this.createUserClient(actor.accessToken);
+    const { data, error } = await client.rpc('student_record_question_position', {
+      p_attempt_id: attemptId,
+      p_question_index: questionIndex,
+    });
+    if (error) throw translateDatabaseError(error);
+    return data;
+  }
+
   async adminGetExamStatistics(actor: AuthenticatedActor, examId: string): Promise<unknown> {
     const client = this.createUserClient(actor.accessToken);
     const { data, error } = await client.rpc('admin_get_exam_statistics', { p_exam_id: examId });
+    if (error) throw translateDatabaseError(error);
+    return data;
+  }
+
+  async adminListLiveMonitoring(
+    actor: AuthenticatedActor,
+    examId?: string | null
+  ): Promise<unknown> {
+    const client = this.createUserClient(actor.accessToken);
+    const { data, error } = await client.rpc('admin_list_live_monitoring', {
+      p_exam_id: examId ?? null,
+    });
+    if (error) throw translateDatabaseError(error);
+    return data ?? [];
+  }
+
+  async adminGetAttemptLiveStatus(
+    actor: AuthenticatedActor,
+    attemptId: string
+  ): Promise<unknown> {
+    const client = this.createUserClient(actor.accessToken);
+    const { data, error } = await client.rpc('admin_get_attempt_live_status', {
+      p_attempt_id: attemptId,
+    });
     if (error) throw translateDatabaseError(error);
     return data;
   }

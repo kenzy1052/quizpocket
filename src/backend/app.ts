@@ -376,6 +376,28 @@ export function createBackendApiRouter(options: CreateBackendAppOptions): expres
     }
   );
 
+  router.post(
+    '/student/attempts/:attemptId/position',
+    requireAuth('student'),
+    async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+      try {
+        const attemptId = assertValidUuid(req.params.attemptId, 'attemptId');
+        const questionIndex =
+          typeof req.body?.question_index === 'number' && Number.isInteger(req.body.question_index)
+            ? Math.max(0, req.body.question_index)
+            : 0;
+        const result = await gateway.studentRecordQuestionPosition(
+          req.actor!,
+          attemptId,
+          questionIndex
+        );
+        res.status(200).json({ data: result });
+      } catch (err) {
+        next(err);
+      }
+    }
+  );
+
   // ==========================================================================
   // ADMINISTRATIVE MANAGEMENT, ANALYTICS, & CSV EXPORT ROUTES
   // ==========================================================================
@@ -825,6 +847,37 @@ export function createBackendApiRouter(options: CreateBackendAppOptions): expres
       try {
         const attemptId = assertValidUuid(req.params.attemptId, 'attemptId');
         const detail = await gateway.adminGetAttemptDetail(req.actor!, attemptId);
+        res.status(200).json({ data: detail });
+      } catch (err) {
+        next(err);
+      }
+    }
+  );
+
+  router.get(
+    '/admin/monitoring/live',
+    requireAuth('admin'),
+    async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+      try {
+        const examId =
+          typeof req.query.exam_id === 'string' && req.query.exam_id.trim()
+            ? assertValidUuid(req.query.exam_id, 'exam_id')
+            : null;
+        const liveAttempts = await gateway.adminListLiveMonitoring(req.actor!, examId);
+        res.status(200).json({ data: liveAttempts });
+      } catch (err) {
+        next(err);
+      }
+    }
+  );
+
+  router.get(
+    '/admin/monitoring/attempts/:attemptId',
+    requireAuth('admin'),
+    async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+      try {
+        const attemptId = assertValidUuid(req.params.attemptId, 'attemptId');
+        const detail = await gateway.adminGetAttemptLiveStatus(req.actor!, attemptId);
         res.status(200).json({ data: detail });
       } catch (err) {
         next(err);

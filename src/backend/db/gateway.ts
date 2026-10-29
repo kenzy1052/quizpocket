@@ -126,11 +126,18 @@ export interface BackendGateway {
   studentSubmitAttempt(actor: AuthenticatedActor, attemptId: string): Promise<unknown>;
   studentGetReleasedResults(actor: AuthenticatedActor): Promise<unknown>;
   studentGetAttemptReview(actor: AuthenticatedActor, attemptId: string): Promise<unknown>;
+  studentRecordQuestionPosition(
+    actor: AuthenticatedActor,
+    attemptId: string,
+    questionIndex: number
+  ): Promise<unknown>;
 
   // Admin: Analytics, Monitoring, & Exports
   adminGetExamStatistics(actor: AuthenticatedActor, examId: string): Promise<unknown>;
   adminListExamAttempts(actor: AuthenticatedActor, examId: string): Promise<unknown>;
   adminGetAttemptDetail(actor: AuthenticatedActor, attemptId: string): Promise<unknown>;
+  adminListLiveMonitoring(actor: AuthenticatedActor, examId?: string | null): Promise<unknown>;
+  adminGetAttemptLiveStatus(actor: AuthenticatedActor, attemptId: string): Promise<unknown>;
   adminGetQuestionAnalytics(actor: AuthenticatedActor, examId: string): Promise<unknown>;
   adminGetClassPerformanceSummary(actor: AuthenticatedActor, examId: string): Promise<unknown>;
   adminExportExamResultsRows(actor: AuthenticatedActor, examId: string): Promise<ExportResultRow[]>;

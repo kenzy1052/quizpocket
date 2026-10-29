@@ -530,12 +530,18 @@ class HybridSupabaseAuthPostgresGateway implements BackendGateway {
     this.local.studentGetReleasedResults(...args);
   studentGetAttemptReview: BackendGateway['studentGetAttemptReview'] = (...args) =>
     this.local.studentGetAttemptReview(...args);
+  studentRecordQuestionPosition: BackendGateway['studentRecordQuestionPosition'] = (...args) =>
+    this.local.studentRecordQuestionPosition(...args);
   adminGetExamStatistics: BackendGateway['adminGetExamStatistics'] = (...args) =>
     this.local.adminGetExamStatistics(...args);
   adminListExamAttempts: BackendGateway['adminListExamAttempts'] = (...args) =>
     this.local.adminListExamAttempts(...args);
   adminGetAttemptDetail: BackendGateway['adminGetAttemptDetail'] = (...args) =>
     this.local.adminGetAttemptDetail(...args);
+  adminListLiveMonitoring: BackendGateway['adminListLiveMonitoring'] = (...args) =>
+    this.local.adminListLiveMonitoring(...args);
+  adminGetAttemptLiveStatus: BackendGateway['adminGetAttemptLiveStatus'] = (...args) =>
+    this.local.adminGetAttemptLiveStatus(...args);
   adminGetQuestionAnalytics: BackendGateway['adminGetQuestionAnalytics'] = (...args) =>
     this.local.adminGetQuestionAnalytics(...args);
   adminGetClassPerformanceSummary: BackendGateway['adminGetClassPerformanceSummary'] = (...args) =>

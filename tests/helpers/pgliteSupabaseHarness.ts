@@ -864,6 +864,44 @@ export class SupabasePostgresHarness {
           throw translateDatabaseError(err);
         }
       },
+
+      async studentRecordQuestionPosition(actor, attemptId: string, questionIndex: number): Promise<void> {
+        try {
+          await harness.asUser(
+            actor.uid,
+            `SELECT public.student_record_question_position($1::uuid, $2::integer)`,
+            [attemptId, questionIndex]
+          );
+        } catch (err) {
+          throw translateDatabaseError(err);
+        }
+      },
+
+      async adminListLiveMonitoring(actor, examId?: string): Promise<unknown> {
+        try {
+          const rows = await harness.asUser<{ res: unknown }>(
+            actor.uid,
+            `SELECT public.admin_list_live_monitoring($1::uuid) AS res`,
+            [examId ?? null]
+          );
+          return rows[0]?.res ?? [];
+        } catch (err) {
+          throw translateDatabaseError(err);
+        }
+      },
+
+      async adminGetAttemptLiveStatus(actor, attemptId: string): Promise<unknown> {
+        try {
+          const rows = await harness.asUser<{ res: unknown }>(
+            actor.uid,
+            `SELECT public.admin_get_attempt_live_status($1::uuid) AS res`,
+            [attemptId]
+          );
+          return rows[0]?.res ?? null;
+        } catch (err) {
+          throw translateDatabaseError(err);
+        }
+      },
     };
   }
 }

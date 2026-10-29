@@ -116,6 +116,10 @@ export interface SubmitAttemptResult {
   result_id: string;
   result_released: boolean;
   allow_review: boolean;
+  marks_obtained?: number;
+  total_marks?: number;
+  percentage?: number;
+  passed?: boolean;
   result: {
     marks_obtained: number;
     total_marks: number;
@@ -136,6 +140,7 @@ export interface StudentReleasedResultRow {
   exam_title: string;
   started_at: string;
   submitted_at: string;
+  finalized_at?: string;
   time_taken_seconds: number;
   result_released: boolean;
   allow_review: boolean;
@@ -174,6 +179,8 @@ export interface ReviewQuestionItem {
 
 export interface AttemptReviewPayload {
   attempt_id: string;
+  attempt_number?: number;
+  finalized_at?: string;
   exam_id: string;
   exam_title: string;
   started_at: string;
@@ -270,9 +277,18 @@ export interface ExamStatisticsPayload {
   pass_count: number;
   fail_count: number;
   pass_rate_percentage: number;
+  average_score?: number;
+  pass_rate?: number;
+  completion_rate?: number;
+  submitted_count?: number;
+  auto_submitted_count?: number;
+  total_attempts_started?: number;
+  lowest_score?: number;
+  highest_score?: number;
 }
 
 export interface AdminAttemptSummaryRow {
+  id?: string;
   attempt_id: string;
   attempt_number: number;
   status: AttemptStatus;
@@ -286,6 +302,7 @@ export interface AdminAttemptSummaryRow {
   student_email: string;
   result_id: string | null;
   marks_obtained: number | null;
+  final_marks?: number | null;
   total_marks: number | null;
   percentage: number | null;
   passed: boolean | null;
@@ -381,3 +398,68 @@ export interface AuditLogRow {
   metadata: Record<string, unknown>;
   created_at: string;
 }
+
+export interface LiveMonitoringAttempt {
+  attempt_id: string;
+  student_id: string;
+  student_name: string;
+  student_identifier: string | null;
+  student_email: string;
+  exam_id: string;
+  exam_title: string;
+  duration_minutes: number;
+  attempt_number: number;
+  status: AttemptStatus;
+  started_at: string;
+  deadline_at: string;
+  submitted_at: string | null;
+  last_activity_at: string;
+  current_question_index: number;
+  total_questions: number;
+  answered_questions: number;
+  seconds_remaining: number;
+  is_active: boolean;
+}
+
+export interface LiveMonitoringQuestionItem {
+  question_id: string;
+  display_order: number;
+  question_type: QuestionType;
+  marks: number;
+  is_answered: boolean;
+  saved_at: string | null;
+  revision: number | null;
+  is_current: boolean;
+}
+
+export interface LiveMonitoringAttemptDetail {
+  attempt_id: string;
+  exam_id: string;
+  exam_title: string;
+  duration_minutes: number;
+  student_id: string;
+  student_name: string;
+  student_identifier: string | null;
+  student_email: string;
+  status: AttemptStatus;
+  attempt_number: number;
+  started_at: string;
+  deadline_at: string;
+  submitted_at: string | null;
+  last_activity_at: string;
+  current_question_index: number;
+  seconds_remaining: number;
+  total_questions: number;
+  questions: LiveMonitoringQuestionItem[];
+}
+
+export type ExamListItem = AdminExamSummary;
+export type ExamStatistics = ExamStatisticsPayload;
+export type StudentReleasedResult = StudentReleasedResultRow;
+export type CreateExamInput = Partial<AdminExamSummary> & {
+  title: string;
+  duration_minutes?: number;
+  instructions?: string;
+  description?: string;
+  passing_percentage?: number;
+};

@@ -330,16 +330,31 @@ export class LocalPostgresBackendGateway implements BackendGateway {
     );
 
     if (!existingById.rows[0]) {
-      // Remove any stale local-only user row with the same email/username if UUID differed
-      await this.db.query(
-        `DELETE FROM auth.users
-         WHERE lower(email) = $1
-           AND id <> $2::uuid
-           AND NOT EXISTS (SELECT 1 FROM public.exams e WHERE e.created_by = auth.users.id)
-           AND NOT EXISTS (SELECT 1 FROM public.exam_attempts a WHERE a.student_id = auth.users.id)`,
-        [normalizedEmail, params.id]
+      // Find any stale local user with the same email or username but different UUID
+      const staleUsers = await this.db.query<{ id: string }>(
+        `SELECT u.id FROM auth.users u
+         LEFT JOIN public.profiles p ON p.id = u.id
+         WHERE (lower(u.email) = $1 OR lower(btrim(COALESCE(p.username, ''))) = $2)
+           AND u.id <> $3::uuid`,
+        [normalizedEmail, cleanUsername, params.id]
       );
 
+      // Phase 1: Free up unique constraints on email and username by renaming stale accounts
+      for (const stale of staleUsers.rows) {
+        const staleId = stale.id;
+        const tempEmail = `stale_${staleId.replace(/-/g, '').slice(0, 12)}@migrated.local`;
+        const tempUser = `stale_${staleId.replace(/-/g, '').slice(0, 12)}`;
+        await this.db.query(
+          `UPDATE auth.users SET email = $1 WHERE id = $2::uuid`,
+          [tempEmail, staleId]
+        ).catch(() => {});
+        await this.db.query(
+          `UPDATE public.profiles SET email = $1, username = $2 WHERE id = $3::uuid`,
+          [tempEmail, tempUser, staleId]
+        ).catch(() => {});
+      }
+
+      // Phase 2: Insert the new authoritative auth user with the intended UUID
       await this.insertAuthUser({
         id: params.id,
         email: normalizedEmail,
@@ -347,18 +362,53 @@ export class LocalPostgresBackendGateway implements BackendGateway {
         fullName: cleanFullName,
         username: cleanUsername,
       });
+
+      if (params.isAdmin) {
+        await this.db.query(`SELECT * FROM public.bootstrap_initial_admin($1::uuid, $2::text)`, [
+          params.id,
+          cleanUsername,
+        ]);
+      }
+
+      // Phase 3: Re-point foreign keys from stale users to new UUID and delete stale accounts
+      for (const stale of staleUsers.rows) {
+        const staleId = stale.id;
+        await this.db.query(
+          `UPDATE public.exams SET created_by = $1::uuid WHERE created_by = $2::uuid`,
+          [params.id, staleId]
+        ).catch(() => {});
+        await this.db.query(
+          `UPDATE public.exam_attempts SET student_id = $1::uuid WHERE student_id = $2::uuid`,
+          [params.id, staleId]
+        ).catch(() => {});
+        await this.db.query(
+          `UPDATE public.audit_logs SET actor_id = $1::uuid WHERE actor_id = $2::uuid`,
+          [params.id, staleId]
+        ).catch(() => {});
+        await this.db.query(
+          `DELETE FROM public.class_memberships WHERE student_id = $1::uuid`,
+          [staleId]
+        ).catch(() => {});
+        await this.db.query(
+          `DELETE FROM public.profiles WHERE id = $1::uuid`,
+          [staleId]
+        ).catch(() => {});
+        await this.db.query(
+          `DELETE FROM auth.users WHERE id = $1::uuid`,
+          [staleId]
+        ).catch(() => {});
+      }
     } else if (params.password) {
       await this.db.query(`UPDATE auth.users SET encrypted_password = $1 WHERE id = $2::uuid`, [
         hashPassword(params.password),
         params.id,
       ]);
-    }
-
-    if (params.isAdmin) {
-      await this.db.query(`SELECT * FROM public.bootstrap_initial_admin($1::uuid, $2::text)`, [
-        params.id,
-        cleanUsername,
-      ]);
+      if (params.isAdmin) {
+        await this.db.query(`SELECT * FROM public.bootstrap_initial_admin($1::uuid, $2::text)`, [
+          params.id,
+          cleanUsername,
+        ]);
+      }
     }
 
     const rows = await this.asUser<Profile>(
@@ -1257,6 +1307,23 @@ export class LocalPostgresBackendGateway implements BackendGateway {
     }
   }
 
+  async studentRecordQuestionPosition(
+    actor: AuthenticatedActor,
+    attemptId: string,
+    questionIndex: number
+  ): Promise<unknown> {
+    try {
+      const rows = await this.asUser<{ res: unknown }>(
+        actor.uid,
+        `SELECT public.student_record_question_position($1::uuid, $2::integer) AS res`,
+        [attemptId, questionIndex]
+      );
+      return rows[0]?.res;
+    } catch (err) {
+      throw translateDatabaseError(err);
+    }
+  }
+
   async adminGetExamStatistics(actor: AuthenticatedActor, examId: string): Promise<unknown> {
     try {
       const rows = await this.asUser<{ res: unknown }>(
@@ -1288,6 +1355,38 @@ export class LocalPostgresBackendGateway implements BackendGateway {
       const rows = await this.asUser<{ res: unknown }>(
         actor.uid,
         `SELECT public.admin_get_attempt_detail($1::uuid) AS res`,
+        [attemptId]
+      );
+      return rows[0]?.res;
+    } catch (err) {
+      throw translateDatabaseError(err);
+    }
+  }
+
+  async adminListLiveMonitoring(
+    actor: AuthenticatedActor,
+    examId?: string | null
+  ): Promise<unknown> {
+    try {
+      const rows = await this.asUser<{ res: unknown }>(
+        actor.uid,
+        `SELECT public.admin_list_live_monitoring($1::uuid) AS res`,
+        [examId ?? null]
+      );
+      return rows[0]?.res ?? [];
+    } catch (err) {
+      throw translateDatabaseError(err);
+    }
+  }
+
+  async adminGetAttemptLiveStatus(
+    actor: AuthenticatedActor,
+    attemptId: string
+  ): Promise<unknown> {
+    try {
+      const rows = await this.asUser<{ res: unknown }>(
+        actor.uid,
+        `SELECT public.admin_get_attempt_live_status($1::uuid) AS res`,
         [attemptId]
       );
       return rows[0]?.res;
