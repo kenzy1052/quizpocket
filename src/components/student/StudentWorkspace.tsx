@@ -456,24 +456,39 @@ export function StudentWorkspace() {
                     {recentSubmission.examTitle}
                   </h2>
                   {recentSubmission.data.result_released && recentSubmission.data.result ? (
-                    <p className="text-sm text-neutral-600 dark:text-neutral-300">
-                      Score:{' '}
-                      <strong className="font-mono tabular-nums text-[#161616] dark:text-[#FDFDFD]">
-                        {formatMarks(recentSubmission.data.result.marks_obtained)} /{' '}
-                        {formatMarks(recentSubmission.data.result.total_marks)} (
-                        {Number(recentSubmission.data.result.percentage).toFixed(1)}%)
-                      </strong>{' '}
-                      ·{' '}
-                      <span
-                        className={
-                          recentSubmission.data.result.passed
-                            ? 'text-[#013F32] dark:text-[#E7FE25] font-semibold'
-                            : 'text-rose-700 dark:text-rose-400 font-semibold'
-                        }
-                      >
-                        {recentSubmission.data.result.passed ? 'Passed' : 'Not Passed'}
-                      </span>
-                    </p>
+                    recentSubmission.examTitle.includes('HIM 101') ||
+                    recentSubmission.data.result.total_marks === 50 ? (
+                      <div className="space-y-1 text-sm text-neutral-600 dark:text-neutral-300">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span>Section A (MCQs):</span>
+                          <strong className="font-mono tabular-nums text-[#013F32] dark:text-[#E7FE25]">
+                            {formatMarks(recentSubmission.data.result.marks_obtained)} / 35 marks
+                          </strong>
+                        </div>
+                        <p className="text-xs text-amber-700 dark:text-amber-400 font-medium">
+                          Section B (5 Short Answer Questions): Submitted to instructor for review (15 marks). You will receive your finalized total score after admin review.
+                        </p>
+                      </div>
+                    ) : (
+                      <p className="text-sm text-neutral-600 dark:text-neutral-300">
+                        Score:{' '}
+                        <strong className="font-mono tabular-nums text-[#161616] dark:text-[#FDFDFD]">
+                          {formatMarks(recentSubmission.data.result.marks_obtained)} /{' '}
+                          {formatMarks(recentSubmission.data.result.total_marks)} (
+                          {Number(recentSubmission.data.result.percentage).toFixed(1)}%)
+                        </strong>{' '}
+                        ·{' '}
+                        <span
+                          className={
+                            recentSubmission.data.result.passed
+                              ? 'text-[#013F32] dark:text-[#E7FE25] font-semibold'
+                              : 'text-rose-700 dark:text-rose-400 font-semibold'
+                          }
+                        >
+                          {recentSubmission.data.result.passed ? 'Passed' : 'Not Passed'}
+                        </span>
+                      </p>
+                    )
                   ) : (
                     <p className="text-sm text-neutral-600 dark:text-neutral-300">
                       Your submission has been recorded. Scores will appear once released by your

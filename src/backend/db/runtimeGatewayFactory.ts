@@ -17,6 +17,7 @@ import {
   HIM_EXAM_METADATA,
 } from '../seed/himExamData.ts';
 import { HIM103_CH1_METADATA, HIM103_CH1_QUESTIONS } from '../seed/him103Chapter1Data.ts';
+import { HIM101_SW_METADATA, HIM101_SW_QUESTIONS } from '../seed/him101SoftwareData.ts';
 
 interface CachedTokenIdentity {
   uid: string;
@@ -117,6 +118,7 @@ async function seedRemoteSupabaseIfNeeded(
 
   let lecture1ExamId: string | undefined;
   let him103ExamId: string | undefined;
+  let him101ExamId: string | undefined;
 
   for (const exam of allExams ?? []) {
     const eId = String(exam.id);
@@ -129,11 +131,15 @@ async function seedRemoteSupabaseIfNeeded(
       him103ExamId = eId;
       continue;
     }
+    if (eTitle === HIM101_SW_METADATA.title && exam.status !== 'archived') {
+      him101ExamId = eId;
+      continue;
+    }
 
     const isLegacySeed =
       /^HIS 202/i.test(eTitle) ||
-      /^HIM 101/i.test(eTitle) ||
-      /^AIM 105/i.test(eTitle);
+      /^AIM 105/i.test(eTitle) ||
+      (eTitle !== HIM101_SW_METADATA.title && /^HIM 101/i.test(eTitle));
 
     if (!isLegacySeed) continue;
 
@@ -194,6 +200,41 @@ async function seedRemoteSupabaseIfNeeded(
         await serviceClient.from('exam_assignments').upsert(
           {
             exam_id: chapterExamId,
+            class_id: defaultClassId,
+            assignment_status: 'active',
+            assigned_by: kenzyId ?? adminActor.uid,
+          },
+          { onConflict: 'exam_id,class_id', ignoreDuplicates: true }
+        );
+      });
+  }
+
+  // 3c. Provision HIM 101: Software System (40 questions, 60 minutes, 50 marks) if not already present
+  if (!him101ExamId) {
+    const createdExam = (await supabaseGateway.adminCreateExam(
+      adminActor,
+      HIM101_SW_METADATA
+    )) as { id: string };
+    him101ExamId = createdExam.id;
+
+    for (const q of HIM101_SW_QUESTIONS) {
+      await supabaseGateway.adminUpsertQuestion(adminActor, him101ExamId, q);
+    }
+
+    await supabaseGateway.adminPublishExam(adminActor, him101ExamId);
+  }
+
+  if (defaultClassId && him101ExamId) {
+    const softwareExamId = him101ExamId;
+    await supabaseGateway
+      .adminAssignExam(adminActor, softwareExamId, {
+        class_id: defaultClassId,
+        status: 'active',
+      })
+      .catch(async () => {
+        await serviceClient.from('exam_assignments').upsert(
+          {
+            exam_id: softwareExamId,
             class_id: defaultClassId,
             assignment_status: 'active',
             assigned_by: kenzyId ?? adminActor.uid,

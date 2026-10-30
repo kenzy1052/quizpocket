@@ -29,6 +29,7 @@ import {
   HIM_EXAM_METADATA,
 } from '../seed/himExamData.ts';
 import { HIM103_CH1_METADATA, HIM103_CH1_QUESTIONS } from '../seed/him103Chapter1Data.ts';
+import { HIM101_SW_METADATA, HIM101_SW_QUESTIONS } from '../seed/him101SoftwareData.ts';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -194,6 +195,7 @@ export class LocalPostgresBackendGateway implements BackendGateway {
       await gateway.ensureSeeded(options.predefinedAdminId);
       await gateway.ensureAdminAndCohortDefaults(options.predefinedAdminId);
       await gateway.ensureHim103Chapter1();
+      await gateway.ensureHim101SoftwareSystem();
     }
 
     return gateway;
@@ -507,7 +509,7 @@ export class LocalPostgresBackendGateway implements BackendGateway {
            open_to_all = true,
            max_attempts = GREATEST(max_attempts, 100),
            retake_cooldown_minutes = 180
-       WHERE title ILIKE 'HIM 101%' OR title ILIKE 'AIM 105%' OR title ILIKE 'HIM 105%'`
+       WHERE (title = 'HIM-101' OR title = 'HIM 101' OR title ILIKE 'AIM 105%' OR (title ILIKE 'HIM 101%' AND title <> 'HIM 101: Software System'))`
     );
 
     await this.db.query(
@@ -553,6 +555,38 @@ export class LocalPostgresBackendGateway implements BackendGateway {
 
     const exam = (await this.adminCreateExam(adminActor, HIM103_CH1_METADATA)) as { id: string };
     for (const q of HIM103_CH1_QUESTIONS) {
+      await this.adminUpsertQuestion(adminActor, exam.id, q);
+    }
+    await this.adminPublishExam(adminActor, exam.id);
+
+    const cohorts = await this.db.query<{ id: string }>(
+      `SELECT id FROM public.classes WHERE auto_enroll_new_students = true`
+    );
+    for (const c of cohorts.rows) {
+      await this.adminAssignExam(adminActor, exam.id, { class_id: c.id, status: 'active' });
+    }
+  }
+
+  /**
+   * Idempotently provisions "HIM 101: Software System" (35 MCQs, 5 Short Answers, 60 minutes, 50 marks)
+   * and assigns it to every auto-enrolling cohort so all students see it.
+   */
+  private async ensureHim101SoftwareSystem(): Promise<void> {
+    const existing = await this.db.query<{ id: string }>(
+      `SELECT id FROM public.exams WHERE title = $1 AND status <> 'archived' LIMIT 1`,
+      [HIM101_SW_METADATA.title]
+    );
+    if (existing.rows.length > 0) return;
+
+    const adminAccount = HIM_DEMO_ACCOUNTS.find((a) => a.role === 'admin')!;
+    const adminSession = await this.signInWithPassword(
+      adminAccount.username ?? 'kenzy',
+      adminAccount.password
+    );
+    const adminActor = await this.verifyBearerToken(adminSession.access_token);
+
+    const exam = (await this.adminCreateExam(adminActor, HIM101_SW_METADATA)) as { id: string };
+    for (const q of HIM101_SW_QUESTIONS) {
       await this.adminUpsertQuestion(adminActor, exam.id, q);
     }
     await this.adminPublishExam(adminActor, exam.id);

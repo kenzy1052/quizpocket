@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { ArrowLeft, CheckCircle2, XCircle, MinusCircle } from 'lucide-react';
+import { ArrowLeft, CheckCircle2, XCircle, MinusCircle, Clock } from 'lucide-react';
 import { ApiClientError, apiRequest } from '../../lib/api.ts';
 import {
   formatDateTime,
@@ -102,6 +102,32 @@ export function AttemptReviewView({ attemptId, onBack }: AttemptReviewViewProps)
     );
   }
 
+  const sectionAQuestions = review.questions.filter((q) => q.question_type !== 'short_answer');
+  const sectionBQuestions = review.questions.filter((q) => q.question_type === 'short_answer');
+  const hasSections = sectionAQuestions.length > 0 && sectionBQuestions.length > 0;
+
+  const sectionAScore = sectionAQuestions.reduce(
+    (sum, q) => sum + (Number(q.marks_awarded) || 0),
+    0
+  );
+  const sectionAMax = sectionAQuestions.reduce(
+    (sum, q) => sum + (Number(q.max_marks) || 0),
+    0
+  );
+
+  const sectionBScore = sectionBQuestions.reduce(
+    (sum, q) => sum + (Number(q.marks_awarded) || 0),
+    0
+  );
+  const sectionBMax = sectionBQuestions.reduce(
+    (sum, q) => sum + (Number(q.max_marks) || 0),
+    0
+  );
+
+  const isSectionBPending =
+    sectionBQuestions.length > 0 &&
+    sectionBQuestions.some((q) => q.outcome === 'partial' && Number(q.marks_awarded) === 0);
+
   const displayedQuestions =
     filter === 'missed'
       ? review.questions.filter((q) => q.outcome !== 'correct')
@@ -109,7 +135,7 @@ export function AttemptReviewView({ attemptId, onBack }: AttemptReviewViewProps)
 
   const correctCount = review.questions.filter((q) => q.outcome === 'correct').length;
   const incorrectCount = review.questions.filter(
-    (q) => q.outcome === 'incorrect' || q.outcome === 'partial'
+    (q) => q.outcome === 'incorrect' || (q.outcome === 'partial' && Number(q.marks_awarded) > 0)
   ).length;
   const unansweredCount = review.questions.filter((q) => q.outcome === 'unanswered').length;
 
@@ -185,6 +211,47 @@ export function AttemptReviewView({ attemptId, onBack }: AttemptReviewViewProps)
           </div>
         </div>
 
+        {hasSections && (
+          <div className="mt-5 pt-4 border-t border-neutral-200/70 dark:border-white/10 grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+            <div className="rounded-2xl bg-[#013F32]/[0.05] dark:bg-[#E7FE25]/[0.08] border border-[#013F32]/20 dark:border-[#E7FE25]/25 p-3.5 space-y-1">
+              <div className="font-bold text-[#013F32] dark:text-[#E7FE25]">
+                Section A: Objective Score (MCQ)
+              </div>
+              <div className="font-mono text-base font-bold text-[#161616] dark:text-[#FDFDFD]">
+                {formatMarks(sectionAScore)} / {formatMarks(sectionAMax)} marks
+              </div>
+              <div className="text-neutral-500 dark:text-neutral-400">
+                Auto-graded immediately ({sectionAMax > 0 ? Math.round((sectionAScore / sectionAMax) * 100) : 0}%)
+              </div>
+            </div>
+
+            <div className="rounded-2xl bg-amber-500/[0.08] dark:bg-amber-500/[0.12] border border-amber-500/25 p-3.5 space-y-1">
+              <div className="font-bold text-amber-800 dark:text-amber-300">
+                Section B: Short Answer Review
+              </div>
+              {isSectionBPending ? (
+                <>
+                  <div className="text-amber-700 dark:text-amber-400 font-semibold">
+                    Submitted for Instructor Review
+                  </div>
+                  <div className="text-neutral-500 dark:text-neutral-400">
+                    5 questions (15 marks). Final score will be released after admin grading.
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="font-mono text-base font-bold text-[#161616] dark:text-[#FDFDFD]">
+                    {formatMarks(sectionBScore)} / {formatMarks(sectionBMax)} marks
+                  </div>
+                  <div className="text-[#013F32] dark:text-[#E7FE25] font-medium">
+                    Instructor Review Completed
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+        )}
+
         <div className="mt-5 pt-4 border-t border-neutral-200/70 dark:border-white/10 flex items-center gap-2">
           <button
             type="button"
@@ -219,7 +286,18 @@ export function AttemptReviewView({ attemptId, onBack }: AttemptReviewViewProps)
           </div>
         ) : (
           displayedQuestions.map((q) => {
-            const { label, textClass, Icon } = outcomeMeta(q.outcome);
+            const isPendingReview =
+              q.question_type === 'short_answer' &&
+              q.outcome === 'partial' &&
+              Number(q.marks_awarded) === 0;
+
+            const meta = outcomeMeta(q.outcome);
+            const label = isPendingReview ? 'Pending Review' : meta.label;
+            const textClass = isPendingReview
+              ? 'text-amber-700 dark:text-amber-400'
+              : meta.textClass;
+            const Icon = isPendingReview ? Clock : meta.Icon;
+
             return (
               <article key={q.question_id} className="p-5 sm:p-7 space-y-4">
                 <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
@@ -227,6 +305,11 @@ export function AttemptReviewView({ attemptId, onBack }: AttemptReviewViewProps)
                     <span className="font-mono tabular-nums font-semibold text-[#161616] dark:text-[#FDFDFD]">
                       Question {q.display_order}
                     </span>
+                    {hasSections && (
+                      <span className="mx-1.5 font-semibold text-neutral-400">
+                        {q.question_type === 'short_answer' ? '· Section B' : '· Section A'}
+                      </span>
+                    )}
                     <span className="mx-1.5">·</span>
                     <span>{formatQuestionTypeLabel(q.question_type)}</span>
                   </div>
@@ -314,6 +397,15 @@ export function AttemptReviewView({ attemptId, onBack }: AttemptReviewViewProps)
                         <div className="font-semibold text-[#161616] dark:text-[#FDFDFD]">
                           {q.accepted_answers[0]}
                         </div>
+                      </div>
+                    )}
+
+                    {isPendingReview && (
+                      <div className="rounded-2xl bg-amber-500/[0.08] dark:bg-amber-500/[0.12] border border-amber-500/25 p-3.5 text-xs text-amber-900 dark:text-amber-200 flex items-center gap-2.5">
+                        <Clock className="w-4 h-4 shrink-0 text-amber-600 dark:text-amber-400" />
+                        <span>
+                          This written response has been submitted to your instructor for evaluation (up to 3 marks).
+                        </span>
                       </div>
                     )}
                   </div>

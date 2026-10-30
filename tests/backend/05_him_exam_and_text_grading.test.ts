@@ -42,13 +42,22 @@ describe('05 — Username+Password Auth, kenzy Admin, HIM 105 Lecture 1 Seed, Op
       .set('Authorization', `Bearer ${adminLogin.body.data.access_token}`)
       .expect(200);
 
-    expect(examsRes.body.data).toHaveLength(2);
+    expect(examsRes.body.data).toHaveLength(3);
     const himExam = examsRes.body.data.find(
       (e: { title: string }) => e.title === 'HIM 105 Lecture 1'
     );
     const ch1Exam = examsRes.body.data.find(
       (e: { title: string }) => e.title === 'HIM 103 Chapter 1'
     );
+    const swExam = examsRes.body.data.find(
+      (e: { title: string }) => e.title === 'HIM 101: Software System'
+    );
+    expect(swExam.status).toBe('published');
+    expect(swExam.is_open).toBe(true);
+    expect(Number(swExam.duration_minutes)).toBe(60);
+    expect(Number(swExam.question_count)).toBe(40);
+    expect(Number(swExam.total_marks)).toBe(50);
+
     expect(ch1Exam.status).toBe('published');
     expect(ch1Exam.is_open).toBe(true);
     expect(Number(ch1Exam.duration_minutes)).toBe(40);
@@ -87,16 +96,26 @@ describe('05 — Username+Password Auth, kenzy Admin, HIM 105 Lecture 1 Seed, Op
       .set('Authorization', `Bearer ${signupRes.body.data.access_token}`)
       .expect(200);
 
-    expect(eligibleRes.body.data).toHaveLength(2);
-    // Newest quiz is listed first
-    expect(eligibleRes.body.data[0].title).toBe('HIM 103 Chapter 1');
-    expect(Number(eligibleRes.body.data[0].duration_minutes)).toBe(40);
+    expect(eligibleRes.body.data).toHaveLength(3);
+    const ch1 = eligibleRes.body.data.find(
+      (e: { title: string }) => e.title === 'HIM 103 Chapter 1'
+    );
+    expect(ch1).toBeTruthy();
+    expect(Number(ch1.duration_minutes)).toBe(40);
     const lecture1 = eligibleRes.body.data.find(
       (e: { title: string }) => e.title === 'HIM 105 Lecture 1'
     );
     expect(Number(lecture1.duration_minutes)).toBe(30);
     expect(lecture1.availability_state).toBe('available');
     expect(lecture1.is_open).toBe(true);
+
+    const sw = eligibleRes.body.data.find(
+      (e: { title: string }) => e.title === 'HIM 101: Software System'
+    );
+    expect(sw).toBeTruthy();
+    expect(Number(sw.duration_minutes)).toBe(60);
+    expect(sw.availability_state).toBe('available');
+    expect(sw.is_open).toBe(true);
 
     const reloginRes = await request(app)
       .post('/api/auth/login')
@@ -119,7 +138,7 @@ describe('05 — Username+Password Auth, kenzy Admin, HIM 105 Lecture 1 Seed, Op
       .set('Authorization', `Bearer ${aminaToken}`)
       .expect(200);
 
-    expect(eligibleRes.body.data).toHaveLength(2);
+    expect(eligibleRes.body.data).toHaveLength(3);
     const lecture1Exam = eligibleRes.body.data.find(
       (e: { title: string }) => e.title === 'HIM 105 Lecture 1'
     );
@@ -345,5 +364,107 @@ describe('05 — Username+Password Auth, kenzy Admin, HIM 105 Lecture 1 Seed, Op
       .expect(200);
     expect(submit.body.data.result_released).toBe(true);
     expect(Number(submit.body.data.result.total_marks)).toBe(40);
+  });
+
+  it('delivers HIM 101: Software System (40 questions, 60 min, 50 marks) with 35 MCQs and 5 Short Answer questions, supporting instructor partial grading', async () => {
+    const studentLogin = await request(app)
+      .post('/api/auth/login')
+      .send({ username: 'Marcus Rivera', password: 'QuizPocket#Student2' })
+      .expect(200);
+    const studentToken = studentLogin.body.data.access_token as string;
+
+    const adminLogin = await request(app)
+      .post('/api/auth/login')
+      .send({ username: 'kenzy', password: 'kenzy1052' })
+      .expect(200);
+    const adminToken = adminLogin.body.data.access_token as string;
+
+    const eligible = await request(app)
+      .get('/api/student/exams')
+      .set('Authorization', `Bearer ${studentToken}`)
+      .expect(200);
+    const swExam = eligible.body.data.find(
+      (e: { title: string }) => e.title === 'HIM 101: Software System'
+    );
+    expect(swExam).toBeTruthy();
+    expect(Number(swExam.duration_minutes)).toBe(60);
+    expect(Number(swExam.total_marks)).toBe(50);
+
+    const start = await request(app)
+      .post(`/api/student/exams/${swExam.id}/attempts`)
+      .set('Authorization', `Bearer ${studentToken}`)
+      .expect(200);
+    const attemptId = start.body.data.attempt_id as string;
+
+    const qRes = await request(app)
+      .get(`/api/student/attempts/${attemptId}/questions`)
+      .set('Authorization', `Bearer ${studentToken}`)
+      .expect(200);
+    const questions = qRes.body.data.questions as Array<{
+      id: string;
+      display_order: number;
+      question_type: string;
+      marks: number;
+    }>;
+    expect(questions).toHaveLength(40);
+
+    const mcqs = questions.filter((q) => q.question_type === 'multiple_choice');
+    const shortAnswers = questions.filter((q) => q.question_type === 'short_answer');
+    expect(mcqs).toHaveLength(35);
+    expect(shortAnswers).toHaveLength(5);
+    expect(shortAnswers.every((q) => Number(q.marks) === 3)).toBe(true);
+
+    // Student types a written answer for question 36
+    const q36 = shortAnswers[0];
+    await request(app)
+      .put(`/api/student/attempts/${attemptId}/answers`)
+      .set('Authorization', `Bearer ${studentToken}`)
+      .send({
+        question_id: q36.id,
+        answer_value:
+          'Cold boot is turning on a computer from completely off. Warm boot restarts without turning power off. POST checks hardware components.',
+      })
+      .expect(200);
+
+    // Submit attempt
+    const submitRes = await request(app)
+      .post(`/api/student/attempts/${attemptId}/submit`)
+      .set('Authorization', `Bearer ${studentToken}`)
+      .expect(200);
+    expect(submitRes.body.data.result_released).toBe(true);
+    expect(Number(submitRes.body.data.result.total_marks)).toBe(50);
+    const resultId = submitRes.body.data.result_id as string;
+
+    // Admin views attempt detail
+    const attemptDetail = await request(app)
+      .get(`/api/admin/attempts/${attemptId}`)
+      .set('Authorization', `Bearer ${adminToken}`)
+      .expect(200);
+    expect(attemptDetail.body.data.exam.title).toBe('HIM 101: Software System');
+    expect(attemptDetail.body.data.questions).toHaveLength(40);
+
+    // Admin grades Q36 with 2 marks out of 3 marks (partial credit)
+    const gradeRes = await request(app)
+      .post(`/api/admin/results/${resultId}/items/${q36.id}/grade`)
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({
+        marks_awarded: 2,
+        reason: 'Good explanation of cold vs warm boot; POST description was brief.',
+      })
+      .expect(200);
+
+    expect(Number(gradeRes.body.data.marks_obtained)).toBe(2);
+
+    // Student reviews their attempt
+    const studentReview = await request(app)
+      .get(`/api/student/attempts/${attemptId}/review`)
+      .set('Authorization', `Bearer ${studentToken}`)
+      .expect(200);
+
+    const reviewedQ36 = studentReview.body.data.questions.find(
+      (q: { question_id: string }) => q.question_id === q36.id
+    );
+    expect(Number(reviewedQ36.marks_awarded)).toBe(2);
+    expect(reviewedQ36.outcome).toBe('partial');
   });
 });

@@ -434,6 +434,31 @@ export function ExamRunner({ attemptId, onSubmitted, onExitToDashboard }: ExamRu
   const isLowTime = remainingSeconds !== null && remainingSeconds <= 300;
   const isCriticalTime = remainingSeconds !== null && remainingSeconds <= 60;
 
+  const hasSections = useMemo(() => {
+    if (!payload) return false;
+    const hasMcq = payload.questions.some((q) => q.question_type === 'multiple_choice');
+    const hasShort = payload.questions.some((q) => q.question_type === 'short_answer');
+    return hasMcq && hasShort;
+  }, [payload]);
+
+  const activeSectionBadge = useMemo(() => {
+    if (!hasSections || !activeQuestion) return null;
+    if (activeQuestion.question_type === 'short_answer') {
+      return {
+        label: 'Section B · Short Answer',
+        subtext: '3 Marks each · Manual Instructor Evaluation',
+        className:
+          'bg-amber-500/10 text-amber-800 dark:text-amber-300 border border-amber-500/30',
+      };
+    }
+    return {
+      label: 'Section A · Multiple Choice',
+      subtext: '1 Mark each · Immediate Objective Scoring',
+      className:
+        'bg-[#013F32]/10 text-[#013F32] dark:bg-[#E7FE25]/15 dark:text-[#E7FE25] border border-[#013F32]/25 dark:border-[#E7FE25]/30',
+    };
+  }, [hasSections, activeQuestion]);
+
   return (
     <div className="min-h-dvh bg-[#F6F7F5] dark:bg-[#161616] text-[#161616] dark:text-[#FDFDFD] flex flex-col transition-colors">
       {/* Compact Sticky Quiz Header */}
@@ -578,19 +603,34 @@ export function ExamRunner({ attemptId, onSubmitted, onExitToDashboard }: ExamRu
             {/* Question Counter & Dashed Divider */}
             <div className="flex flex-wrap items-center justify-between gap-3 pb-4 border-b border-dashed border-neutral-200 dark:border-white/15">
               <div>
-                <div className="font-display text-lg sm:text-xl font-bold text-[#161616] dark:text-[#FDFDFD]">
-                  Question {String(currentIndex + 1).padStart(2, '0')}{' '}
-                  <span className="text-neutral-400 dark:text-neutral-500 font-normal text-sm sm:text-base">
-                    / {String(totalQuestions).padStart(2, '0')}
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="font-display text-lg sm:text-xl font-bold text-[#161616] dark:text-[#FDFDFD]">
+                    Question {String(currentIndex + 1).padStart(2, '0')}{' '}
+                    <span className="text-neutral-400 dark:text-neutral-500 font-normal text-sm sm:text-base">
+                      / {String(totalQuestions).padStart(2, '0')}
+                    </span>
                   </span>
+                  {activeSectionBadge && (
+                    <span
+                      className={`text-[11px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full ${activeSectionBadge.className}`}
+                    >
+                      {activeSectionBadge.label}
+                    </span>
+                  )}
                 </div>
-                <div className="text-xs text-neutral-500 dark:text-neutral-400 mt-1">
+                <div className="text-xs text-neutral-500 dark:text-neutral-400 mt-1 flex flex-wrap items-center gap-1.5">
                   <span>{formatQuestionTypeLabel(activeQuestion.question_type)}</span>
-                  <span className="mx-1.5">·</span>
+                  <span>·</span>
                   <span className="font-mono tabular-nums">
                     {formatMarks(activeQuestion.marks)}{' '}
                     {Number(activeQuestion.marks) === 1 ? 'mark' : 'marks'}
                   </span>
+                  {activeSectionBadge && (
+                    <>
+                      <span>·</span>
+                      <span>{activeSectionBadge.subtext}</span>
+                    </>
+                  )}
                 </div>
               </div>
 
@@ -770,36 +810,120 @@ export function ExamRunner({ attemptId, onSubmitted, onExitToDashboard }: ExamRu
               </span>
             </div>
 
-            <div className="grid grid-cols-5 gap-2">
-              {payload.questions.map((q, idx) => {
-                const answered = isQuestionAnswered(q);
-                const flagged = flaggedIds.has(q.id);
-                const current = idx === currentIndex;
-                return (
-                  <button
-                    key={q.id}
-                    type="button"
-                    onClick={() => void navigateToIndex(idx)}
-                    title={`Jump to Question ${idx + 1}`}
-                    className={`min-h-[42px] rounded-xl font-mono tabular-nums text-xs font-semibold relative transition flex items-center justify-center ${
-                      current
-                        ? 'bg-[#013F32] text-[#FDFDFD] dark:bg-[#E7FE25] dark:text-[#161616] ring-2 ring-[#013F32]/40 dark:ring-[#E7FE25]/40'
-                        : answered
-                          ? 'bg-[#013F32]/10 dark:bg-[#E7FE25]/15 text-[#013F32] dark:text-[#E7FE25] border border-[#013F32]/30 dark:border-[#E7FE25]/35'
-                          : 'bg-neutral-100/80 dark:bg-[#161616] text-neutral-600 dark:text-neutral-400 border border-neutral-200 dark:border-white/10 hover:border-neutral-400'
-                    }`}
-                  >
-                    {idx + 1}
-                    {flagged && (
-                      <span
-                        className="w-2 h-2 rounded-full bg-amber-500 absolute top-1.5 right-1.5"
-                        aria-label="Flagged"
-                      />
-                    )}
-                  </button>
-                );
-              })}
-            </div>
+            {hasSections ? (
+              <div className="space-y-4">
+                <div>
+                  <div className="flex items-center justify-between text-xs font-bold text-[#013F32] dark:text-[#E7FE25] mb-2 px-0.5">
+                    <span>Section A: Objective (MCQ)</span>
+                    <span className="font-mono text-[11px] text-neutral-400 font-normal">
+                      Q1–Q{payload.questions.filter((q) => q.question_type !== 'short_answer').length} · 1 mark
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-5 gap-1.5">
+                    {payload.questions.map((q, idx) => {
+                      if (q.question_type === 'short_answer') return null;
+                      const answered = isQuestionAnswered(q);
+                      const flagged = flaggedIds.has(q.id);
+                      const current = idx === currentIndex;
+                      return (
+                        <button
+                          key={q.id}
+                          type="button"
+                          onClick={() => void navigateToIndex(idx)}
+                          title={`Jump to Question ${idx + 1}`}
+                          className={`min-h-[38px] rounded-xl font-mono tabular-nums text-xs font-semibold relative transition flex items-center justify-center ${
+                            current
+                              ? 'bg-[#013F32] text-[#FDFDFD] dark:bg-[#E7FE25] dark:text-[#161616] ring-2 ring-[#013F32]/40 dark:ring-[#E7FE25]/40'
+                              : answered
+                                ? 'bg-[#013F32]/10 dark:bg-[#E7FE25]/15 text-[#013F32] dark:text-[#E7FE25] border border-[#013F32]/30 dark:border-[#E7FE25]/35'
+                                : 'bg-neutral-100/80 dark:bg-[#161616] text-neutral-600 dark:text-neutral-400 border border-neutral-200 dark:border-white/10 hover:border-neutral-400'
+                          }`}
+                        >
+                          {idx + 1}
+                          {flagged && (
+                            <span
+                              className="w-1.5 h-1.5 rounded-full bg-amber-500 absolute top-1 right-1"
+                              aria-label="Flagged"
+                            />
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                <div className="pt-3 border-t border-neutral-200/70 dark:border-white/10">
+                  <div className="flex items-center justify-between text-xs font-bold text-amber-700 dark:text-amber-400 mb-2 px-0.5">
+                    <span>Section B: Short Answer</span>
+                    <span className="font-mono text-[11px] text-neutral-400 font-normal">
+                      5 Qs · 3 marks each
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-5 gap-1.5">
+                    {payload.questions.map((q, idx) => {
+                      if (q.question_type !== 'short_answer') return null;
+                      const answered = isQuestionAnswered(q);
+                      const flagged = flaggedIds.has(q.id);
+                      const current = idx === currentIndex;
+                      return (
+                        <button
+                          key={q.id}
+                          type="button"
+                          onClick={() => void navigateToIndex(idx)}
+                          title={`Jump to Question ${idx + 1}`}
+                          className={`min-h-[38px] rounded-xl font-mono tabular-nums text-xs font-semibold relative transition flex items-center justify-center ${
+                            current
+                              ? 'bg-[#013F32] text-[#FDFDFD] dark:bg-[#E7FE25] dark:text-[#161616] ring-2 ring-[#013F32]/40 dark:ring-[#E7FE25]/40'
+                              : answered
+                                ? 'bg-amber-500/15 text-amber-800 dark:text-amber-300 border border-amber-500/35'
+                                : 'bg-neutral-100/80 dark:bg-[#161616] text-neutral-600 dark:text-neutral-400 border border-neutral-200 dark:border-white/10 hover:border-neutral-400'
+                          }`}
+                        >
+                          {idx + 1}
+                          {flagged && (
+                            <span
+                              className="w-1.5 h-1.5 rounded-full bg-amber-500 absolute top-1 right-1"
+                              aria-label="Flagged"
+                            />
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="grid grid-cols-5 gap-2">
+                {payload.questions.map((q, idx) => {
+                  const answered = isQuestionAnswered(q);
+                  const flagged = flaggedIds.has(q.id);
+                  const current = idx === currentIndex;
+                  return (
+                    <button
+                      key={q.id}
+                      type="button"
+                      onClick={() => void navigateToIndex(idx)}
+                      title={`Jump to Question ${idx + 1}`}
+                      className={`min-h-[42px] rounded-xl font-mono tabular-nums text-xs font-semibold relative transition flex items-center justify-center ${
+                        current
+                          ? 'bg-[#013F32] text-[#FDFDFD] dark:bg-[#E7FE25] dark:text-[#161616] ring-2 ring-[#013F32]/40 dark:ring-[#E7FE25]/40'
+                          : answered
+                            ? 'bg-[#013F32]/10 dark:bg-[#E7FE25]/15 text-[#013F32] dark:text-[#E7FE25] border border-[#013F32]/30 dark:border-[#E7FE25]/35'
+                            : 'bg-neutral-100/80 dark:bg-[#161616] text-neutral-600 dark:text-neutral-400 border border-neutral-200 dark:border-white/10 hover:border-neutral-400'
+                      }`}
+                    >
+                      {idx + 1}
+                      {flagged && (
+                        <span
+                          className="w-2 h-2 rounded-full bg-amber-500 absolute top-1.5 right-1.5"
+                          aria-label="Flagged"
+                        />
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
 
             <div className="mt-5 pt-4 border-t border-neutral-200/70 dark:border-white/10 text-xs text-neutral-500 dark:text-neutral-400 space-y-1.5">
               <div className="flex items-center justify-between">
@@ -994,6 +1118,20 @@ export function ExamRunner({ attemptId, onSubmitted, onExitToDashboard }: ExamRu
                 </div>
               )}
             </div>
+
+            {hasSections && (
+              <div className="rounded-2xl bg-[#013F32]/[0.05] dark:bg-[#E7FE25]/[0.08] border border-[#013F32]/20 dark:border-[#E7FE25]/25 p-3.5 space-y-1.5 text-xs">
+                <div className="font-bold text-[#013F32] dark:text-[#E7FE25]">
+                  Exam Scoring Protocol
+                </div>
+                <p className="text-neutral-600 dark:text-neutral-300">
+                  • <strong>Section A (MCQs 1–35):</strong> Auto-evaluated immediately upon submission (35 marks total).
+                </p>
+                <p className="text-neutral-600 dark:text-neutral-300">
+                  • <strong>Section B (Short Answer 36–40):</strong> Sent to instructor for evaluation (15 marks total). Final score (out of 50) is released following instructor review.
+                </p>
+              </div>
+            )}
 
             {unansweredCount > 0 && (
               <div className="rounded-2xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/60 p-3.5 flex items-start gap-2.5 text-xs text-amber-900 dark:text-amber-200">
