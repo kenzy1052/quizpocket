@@ -35,15 +35,16 @@ import {
   ResultReleasePolicy,
 } from '../../types/frontend.ts';
 
+export type ExamSubTab = 'questions' | 'attempts' | 'analytics' | 'settings';
+
 interface ExamDetailManagerProps {
   exam: AdminExamSummary;
   classes: AdminClassItem[];
   students: Profile[];
   onBack: () => void;
   onExamUpdated: () => Promise<void>;
+  initialTab?: ExamSubTab;
 }
-
-type ExamSubTab = 'questions' | 'attempts' | 'analytics' | 'settings';
 
 interface OptionDraft {
   option_text: string;
@@ -56,8 +57,21 @@ export function ExamDetailManager({
   students,
   onBack,
   onExamUpdated,
+  initialTab,
 }: ExamDetailManagerProps) {
-  const [subTab, setSubTab] = useState<ExamSubTab>('questions');
+  const [subTab, setSubTab] = useState<ExamSubTab>(() => {
+    if (initialTab && ['questions', 'attempts', 'analytics', 'settings'].includes(initialTab)) {
+      return initialTab;
+    }
+    return 'questions';
+  });
+
+  useEffect(() => {
+    if (initialTab && ['questions', 'attempts', 'analytics', 'settings'].includes(initialTab)) {
+      setSubTab(initialTab);
+    }
+  }, [initialTab]);
+
   const [questions, setQuestions] = useState<AdminQuestionItem[]>([]);
   const [stats, setStats] = useState<ExamStatisticsPayload | null>(null);
   const [attempts, setAttempts] = useState<AdminAttemptSummaryRow[]>([]);

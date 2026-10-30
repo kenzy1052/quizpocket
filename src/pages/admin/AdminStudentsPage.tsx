@@ -35,13 +35,15 @@ export function AdminStudentsPage() {
     try {
       setLoading(true);
       const [studentsRes, classesRes] = await Promise.all([
-        apiRequest<{ data: Profile[] }>('/admin/students'),
-        apiRequest<{ data: AdminClassItem[] }>('/admin/classes'),
+        apiRequest<Profile[]>('/admin/students'),
+        apiRequest<AdminClassItem[]>('/admin/classes'),
       ]);
-      setStudents(studentsRes.data || []);
-      setClasses(classesRes.data || []);
-      if (classesRes.data?.length && !selectedClassId) {
-        setSelectedClassId(classesRes.data[0].id);
+      const studentList = Array.isArray(studentsRes) ? studentsRes : [];
+      const classList = Array.isArray(classesRes) ? classesRes : [];
+      setStudents(studentList);
+      setClasses(classList);
+      if (classList.length && !selectedClassId) {
+        setSelectedClassId(classList[0].id);
       }
     } catch (err: any) {
       notify({ type: 'error', message: err?.message || 'Failed to load students.' });

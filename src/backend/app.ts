@@ -560,6 +560,24 @@ export function createBackendApiRouter(options: CreateBackendAppOptions): expres
     }
   );
 
+  router.get(
+    '/admin/exams/:examId',
+    requireAuth('admin'),
+    async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+      try {
+        const examId = assertValidUuid(req.params.examId, 'examId');
+        const exams = (await gateway.adminListExams(req.actor!)) as Array<{ id: string }>;
+        const found = exams.find((e) => e.id === examId);
+        if (!found) {
+          throw new AppError(404, 'EXAM_NOT_FOUND', 'The requested quiz was not found.');
+        }
+        res.status(200).json({ data: found });
+      } catch (err) {
+        next(err);
+      }
+    }
+  );
+
   router.post(
     '/admin/exams',
     requireAuth('admin'),

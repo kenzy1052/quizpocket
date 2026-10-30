@@ -174,6 +174,7 @@ function AppRoutes() {
         <Route path="monitoring/:attemptId" element={<AdminAttemptMonitorPage />} />
         <Route path="quizzes" element={<AdminQuizzesPage />} />
         <Route path="quizzes/:quizId" element={<AdminQuizDetailPage />} />
+        <Route path="quizzes/:quizId/:tab" element={<AdminQuizDetailPage />} />
         <Route path="students" element={<AdminStudentsPage />} />
         <Route path="results" element={<AdminResultsPage />} />
         <Route path="analytics" element={<AdminDashboardPage />} />

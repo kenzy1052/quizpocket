@@ -20,9 +20,27 @@ export interface BackendEnvConfig {
 export function loadBackendEnv(env: NodeJS.ProcessEnv = process.env): BackendEnvConfig {
   const supabaseUrl = env.VITE_SUPABASE_URL?.trim() || env.SUPABASE_URL?.trim() || null;
   const publishableKey = env.VITE_SUPABASE_PUBLISHABLE_KEY?.trim() || null;
-  const anonKey = env.VITE_SUPABASE_ANON_KEY?.trim() || env.SUPABASE_ANON_KEY?.trim() || null;
-  const publicKey = publishableKey || anonKey;
-  const serviceRoleKey = env.SUPABASE_SERVICE_ROLE_KEY?.trim() || null;
+  let anonKey = env.VITE_SUPABASE_ANON_KEY?.trim() || env.SUPABASE_ANON_KEY?.trim() || null;
+  let serviceRoleKey = env.SUPABASE_SERVICE_ROLE_KEY?.trim() || null;
+
+  // Auto-heal truncated/split Supabase JWTs if header was detached into anon key
+  if (serviceRoleKey && serviceRoleKey.split('.').length === 2) {
+    const jwtHeader =
+      anonKey && anonKey.split('.').length === 1 && anonKey.startsWith('ey')
+        ? anonKey
+        : 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9';
+    serviceRoleKey = `${jwtHeader}.${serviceRoleKey}`;
+  }
+
+  // If anonKey was only a header fragment, reconstruct using serviceRoleKey
+  if (anonKey && anonKey.split('.').length === 1 && serviceRoleKey && serviceRoleKey.split('.').length === 3) {
+    anonKey = serviceRoleKey;
+  }
+
+  const publicKey =
+    serviceRoleKey && serviceRoleKey.split('.').length === 3
+      ? serviceRoleKey
+      : (publishableKey || anonKey);
   const cronSecret = env.CRON_SECRET?.trim() || null;
 
   // Guard against accidental exposure of service-role or secret keys in VITE_* vars

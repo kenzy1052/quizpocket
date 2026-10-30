@@ -243,7 +243,11 @@ export function AdminQuizzesPage() {
                       )}
                     </div>
 
-                    <h2 className="font-bold text-base sm:text-lg text-[#161616] dark:text-[#FDFDFD] truncate">
+                    <h2
+                      onClick={() => navigate(`/admin/quizzes/${exam.id}`)}
+                      className="font-bold text-base sm:text-lg text-[#161616] dark:text-[#FDFDFD] truncate cursor-pointer hover:text-[#013F32] dark:hover:text-[#E7FE25] transition-colors"
+                      title="Manage quiz"
+                    >
                       {exam.title}
                     </h2>
 
@@ -268,10 +272,17 @@ export function AdminQuizzesPage() {
                     </button>
 
                     <button
-                      onClick={() => navigate(`/admin/quizzes/${exam.id}`)}
+                      onClick={() => navigate(`/admin/quizzes/${exam.id}/settings`)}
                       className="px-3.5 py-2 rounded-xl glass-panel text-xs font-semibold hover:border-neutral-400"
                     >
                       Settings
+                    </button>
+
+                    <button
+                      onClick={() => navigate(`/admin/quizzes/${exam.id}/attempts`)}
+                      className="px-3.5 py-2 rounded-xl glass-panel text-xs font-semibold text-emerald-700 dark:text-emerald-400 hover:border-emerald-500"
+                    >
+                      Results
                     </button>
 
                     <button

@@ -62,23 +62,7 @@ async function ensureRemoteAuthUsers(
     });
   }
 
-  // Ensure seeded HIM student accounts also exist in remote Supabase Auth
-  for (const demo of HIM_DEMO_ACCOUNTS) {
-    if (demo.role !== 'student') continue;
-    const emailLower = demo.email.toLowerCase();
-    if (!byEmail.has(emailLower)) {
-      await serviceClient.auth.admin.createUser({
-        email: emailLower,
-        password: demo.password,
-        email_confirm: true,
-        user_metadata: {
-          username: demo.username ?? demo.label,
-          full_name: demo.username ?? demo.label,
-        },
-      });
-    }
-  }
-
+  // Preserve exclusively live Supabase Auth users; do not inject generic mock accounts
   return { kenzyId };
 }
 

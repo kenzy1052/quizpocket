@@ -30,8 +30,8 @@ export function AdminResultsPage() {
   const loadExams = useCallback(async () => {
     try {
       setLoading(true);
-      const res = await apiRequest<{ data: AdminExamSummary[] }>('/admin/exams');
-      const list = res.data || [];
+      const res = await apiRequest<AdminExamSummary[]>('/admin/exams');
+      const list = Array.isArray(res) ? res : [];
       setExams(list);
       if (list.length > 0 && !selectedExamId) {
         setSelectedExamId(list[0].id);
@@ -47,10 +47,10 @@ export function AdminResultsPage() {
     if (!examId) return;
     try {
       setLoadingAttempts(true);
-      const res = await apiRequest<{ data: AdminAttemptSummaryRow[] }>(
+      const res = await apiRequest<AdminAttemptSummaryRow[]>(
         `/admin/exams/${examId}/attempts`
       );
-      setAttempts(res.data || []);
+      setAttempts(Array.isArray(res) ? res : []);
     } catch (err: any) {
       notify({ type: 'error', message: err?.message || 'Failed to load examination attempts.' });
     } finally {
